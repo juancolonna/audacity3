@@ -19,6 +19,9 @@
 #include <vamp-hostsdk/PluginChannelAdapter.h>
 #include <vamp-hostsdk/PluginInputDomainAdapter.h>
 
+#include <chrono>
+#include <future>
+
 #include <wx/wxprec.h>
 #include <wx/checkbox.h>
 #include <wx/choice.h>
@@ -485,6 +488,19 @@ bool VampEffect::Process(EffectInstance &, EffectSettings &)
          }
       }
 
+      std::future<Vamp::Plugin::FeatureSet> remainingFeatures = std::async(std::launch::async, [this] {
+         return mPlugin->getRemainingFeatures();
+      });
+
+      while (remainingFeatures.wait_for(std::chrono::milliseconds(100))
+         != std::future_status::ready) {
+         if (channels > 1) {
+            TrackGroupProgress(count, 1.0);
+         } else {
+            TrackProgress(count, 1.0);
+         }
+      }
+      
       Vamp::Plugin::FeatureSet features = mPlugin->getRemainingFeatures();
       AddFeatures(ltrack, features);
 
