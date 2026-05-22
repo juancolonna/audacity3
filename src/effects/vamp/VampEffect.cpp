@@ -493,15 +493,25 @@ bool VampEffect::Process(EffectInstance &, EffectSettings &)
       });
 
       while (remainingFeatures.wait_for(std::chrono::milliseconds(100))
-         != std::future_status::ready) {
-         if (channels > 1) {
-            TrackGroupProgress(count, 1.0);
-         } else {
-            TrackProgress(count, 1.0);
+         != std::future_status::ready)
+      {
+         if (channels > 1)
+         {
+            if (TrackGroupProgress(count, 1.0))
+            {
+               return false;
+            }
+         }
+         else
+         {
+            if (TrackProgress(count, 1.0))
+            {
+               return false;
+            }
          }
       }
       
-      Vamp::Plugin::FeatureSet features = mPlugin->getRemainingFeatures();
+      Vamp::Plugin::FeatureSet features = remainingFeatures.get();
       AddFeatures(ltrack, features);
 
       prevTrackChannels = channels;
